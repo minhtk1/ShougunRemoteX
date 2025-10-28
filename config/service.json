@@ -1,0 +1,28 @@
+{
+  "service": {
+    "name": "ShougunRemoteX",
+    "version": "1.0.0",
+    "description": "Python SOLID Service for C# Integration"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/shougun_service.log",
+    "rotation": "1 day",
+    "retention": "30 days"
+  },
+  "data": {
+    "tasks_file": "data/tasks.json",
+    "backup_enabled": true,
+    "backup_interval": "1 hour"
+  },
+  "performance": {
+    "worker_thread_sleep": 1.0,
+    "max_memory_mb": 512,
+    "cpu_threshold": 80.0
+  },
+  "integration": {
+    "csharp_bridge_enabled": true,
+    "api_port": 8080,
+    "timeout_seconds": 30
+  }
+}
