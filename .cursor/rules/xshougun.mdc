@@ -127,6 +127,20 @@ alwaysApply: true
 - Use pull requests for code review
 - Tag releases appropriately
 
+## License Compliance
+- **TUÂN THỦ GNU General Public License v2.0** khi copy code từ xpra-client
+- Mọi code được copy từ xpra-client phải tuân thủ GPL v2.0 license
+- Phải ghi rõ nguồn gốc code và license trong header comment
+- Không được sử dụng code từ xpra-client trong các phần proprietary
+- Đảm bảo toàn bộ project tuân thủ GPL v2.0 nếu có sử dụng code từ xpra-client
+- Ví dụ header comment:
+```python
+# Code copied from xpra-client under GNU General Public License v2.0
+# Original source: xpra-client/path/to/file.py
+# License: GNU General Public License v2.0
+# This file is part of ShougunRemoteX-Python project
+```
+
 ## Examples of Good Practices
 
 ### Requirements.txt Organization
@@ -243,6 +257,7 @@ def process_users(users: List[User]) -> Optional[User]:
 - [ ] **Comments bằng tiếng Việt cho các xử lý logic**
 - [ ] **Dependencies mới đã được cập nhật vào requirements.txt**
 - [ ] **Virtual environment đã được activate trước khi build**
+- [ ] **License compliance: Code từ xpra-client có header comment GPL v2.0**
 - [ ] No code duplication
 - [ ] Proper separation of concerns
 - [ ] Uses dependency injection where appropriate
