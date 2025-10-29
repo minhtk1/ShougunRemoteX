@@ -17,8 +17,9 @@ from ctypes.wintypes import BOOL, HANDLE, DWORD, LPWSTR, LPVOID, WORD, SMALL_REC
 
 from xpra.util.env import envbool
 from xpra.common import noerr
-from xpra.platform.win32 import constants as win32con
-from xpra.platform.win32.common import (
+# Import trực tiếp từ cùng module để tránh circular import với xpra.platform.win32
+from third_party.xpra_client.platform.win32 import constants as win32con
+from third_party.xpra_client.platform.win32.common import (
     GetStdHandle,
     SetConsoleTitleA, GetConsoleScreenBufferInfo,
     MessageBoxA, GetLastError, kernel32,
@@ -193,7 +194,8 @@ def setup_console_event_listener(handler, enable: bool) -> bool:
     from xpra.log import Logger
     log = Logger("win32")
     try:
-        from xpra.platform.win32.common import SetConsoleCtrlHandler, ConsoleCtrlHandler
+        # Import trực tiếp từ cùng module để tránh circular import
+        from third_party.xpra_client.platform.win32.common import SetConsoleCtrlHandler, ConsoleCtrlHandler
         log("calling SetConsoleCtrlHandler(%s, %s)", handler, enable)
         ctypes_handler = ConsoleCtrlHandler(handler)
         result = SetConsoleCtrlHandler(ctypes_handler, enable)
@@ -210,7 +212,8 @@ def setup_console_event_listener(handler, enable: bool) -> bool:
 
 def do_init() -> None:
     def datadir() -> str:
-        from xpra.platform.win32.paths import get_appdata_dir
+        # Import trực tiếp từ cùng module để tránh circular import
+        from third_party.xpra_client.platform.win32.paths import get_appdata_dir
         appdatadir = get_appdata_dir(False)
         if not os.path.exists(appdatadir):
             os.mkdir(appdatadir)

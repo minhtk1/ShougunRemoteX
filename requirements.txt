@@ -28,7 +28,8 @@ redis>=5.0.1
 Pillow>=9.0.0
 # rencode>=1.0.8
 
-# GUI dependencies (optional - only needed for XPRA GUI client)
-# Uncomment these if you need GUI functionality on Linux:
-# pycairo>=1.20.0; sys_platform == 'linux'
-# PyGObject>=3.40.0; sys_platform == 'linux'
+# GUI dependencies - Xpra client cần PyGObject cho GTK3 backend
+# LƯU Ý: Trên Windows, cần cài đặt PyGObject qua MSYS2 hoặc từ pre-built wheels
+# Nếu không có MSYS2, có thể cần sử dụng Qt6 backend thay vì GTK3
+# PyGObject>=3.40.0; sys_platform == 'win32'
+# pycairo>=1.20.0; sys_platform == 'win32'

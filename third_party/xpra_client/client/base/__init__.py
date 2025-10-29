@@ -2,3 +2,6 @@
 # Copyright (C) 2018 Antoine Martin <antoine@xpra.org>
 # Xpra is released under the terms of the GNU GPL v2, or, at your option, any
 # later version. See the file COPYING for details.
+
+# Export features module để có thể import từ xpra.client.base
+from . import features

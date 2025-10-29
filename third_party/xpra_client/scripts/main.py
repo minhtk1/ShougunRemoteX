@@ -370,10 +370,48 @@ def check_gtk_client() -> None:
 
 def gtk_init_check() -> bool:
     Gtk = gi_import("Gtk")
-    if Gtk._version[0] > "3":
-        r = Gtk.init_check()
-    else:
-        r = Gtk.init_check(argv=None)[0]
+    # Kiểm tra version của Gtk - có thể là tuple hoặc function
+    try:
+        # Thử lấy _version như một attribute subscriptable
+        version = Gtk._version
+        if callable(version):
+            # Nếu _version là function, gọi nó (một số phiên bản PyGObject)
+            version = version()
+        
+        # Kiểm tra nếu version là subscriptable (tuple/list)
+        if hasattr(version, '__getitem__'):
+            major_version = version[0]
+            # So sánh version - GTK 4 có major version > 3
+            version_check = major_version > 3
+        else:
+            # Nếu không subscriptable, mặc định sử dụng GTK 3 (cách cũ)
+            version_check = False
+    except (AttributeError, TypeError, IndexError):
+        # Nếu không thể lấy version, mặc định sử dụng cách cũ (GTK 3)
+        version_check = False
+    
+    # Gọi init_check với cách phù hợp tùy theo version
+    try:
+        if version_check:
+            # GTK 4: init_check() trả về bool trực tiếp
+            r = Gtk.init_check()
+        else:
+            # GTK 3: init_check(argv=None) trả về tuple, lấy phần tử đầu
+            r = Gtk.init_check(argv=None)[0]
+    except (TypeError, AttributeError, IndexError) as e:
+        # Nếu có lỗi, thử cách khác hoặc xử lý exception
+        # Trên Windows với mock hoặc các trường hợp đặc biệt
+        try:
+            # Thử gọi không có tham số
+            r = Gtk.init_check()
+            # Nếu trả về tuple, lấy phần tử đầu
+            if isinstance(r, tuple):
+                r = r[0]
+        except Exception:
+            # Trên Windows không có GTK thật, mock sẽ trả về True
+            # Trong trường hợp khác, raise exception để báo lỗi thật
+            raise InitExit(ExitCode.NO_DISPLAY, f"failed to initialize Gtk: {e}") from e
+    
     return bool(r)
 
 
