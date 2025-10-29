@@ -26,11 +26,17 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Build artifacts và temporary files
+build.bat
+*.tmp
+*.temp
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+ShougunRemoteX_Service.spec
 
 # Installer logs
 pip-log.txt
@@ -107,6 +113,7 @@ ipython_config.py
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
 #poetry.lock
 #poetry.toml
+pyproject.toml
 
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
@@ -205,5 +212,33 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ShougunRemoteX specific files
+# Log files
+logs/
+*.log
+
+# Data files (có thể chứa sensitive data)
+data/*.json
+data/*.db
+data/*.sqlite
+
+# Service specific files
+service.pid
+service.lock
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux specific
+*~
 
 xpra-client/
