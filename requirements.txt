@@ -21,3 +21,11 @@ auto-py-to-exe>=2.40.0
 # Optional: For advanced features
 asyncio-mqtt>=0.16.1
 redis>=5.0.1
+
+# Xpra client
+
+PyGObject>=3.40.0
+pycairo>=1.20.0
+Pillow>=9.0.0
+rencode>=1.0.6
+pywin32>=300; sys_platform == 'win32'
