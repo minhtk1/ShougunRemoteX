@@ -26,6 +26,9 @@ def build(config: str) -> None:
     # Xác định dấu phân cách cho --add-data dựa trên hệ điều hành
     # Windows sử dụng dấu ;, Linux/macOS sử dụng dấu :
     data_separator = ";" if platform.system() == "Windows" else ":"
+    
+    # Xác định extension cho executable dựa trên hệ điều hành
+    exe_extension = ".exe" if platform.system() == "Windows" else ""
 
     base_options = [
         "--onefile",
@@ -39,6 +42,7 @@ def build(config: str) -> None:
         "src",
         "--paths",
         ".",
+        "--clean",  # Thêm option để clean build cache
     ]
 
     if config == "Debug":
@@ -54,7 +58,7 @@ def build(config: str) -> None:
         [
             *base_options,
             "--name",
-            "ShougunRemoteX_Service",
+            f"ShougunRemoteX_Service{exe_extension}",
             "--add-data",
             f"{os.path.abspath('config')}{data_separator}config",
             "--hidden-import",
@@ -99,7 +103,7 @@ def build(config: str) -> None:
         [
             *base_options,
             "--name",
-            "Xpra_cmd",
+            f"Xpra_cmd{exe_extension}",
             "--hidden-import",
             "shougun_remote",
             "--hidden-import",
@@ -117,8 +121,8 @@ def build(config: str) -> None:
     )
 
     print("\n✅ Build completed:")
-    print(f"   {os.path.join(output_dir, 'ShougunRemoteX_Service.exe')}")
-    print(f"   {os.path.join(output_dir, 'Xpra_cmd.exe')}")
+    print(f"   {os.path.join(output_dir, f'ShougunRemoteX_Service{exe_extension}')}")
+    print(f"   {os.path.join(output_dir, f'Xpra_cmd{exe_extension}')}")
 
 
 if __name__ == "__main__":

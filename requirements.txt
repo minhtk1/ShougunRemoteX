@@ -26,7 +26,7 @@ redis>=5.0.1
 
 # Xpra client dependencies (optional for basic functionality)
 Pillow>=9.0.0
-rencode>=1.0.6
+# rencode>=1.0.8
 
 # GUI dependencies (optional - only needed for XPRA GUI client)
 # Uncomment these if you need GUI functionality on Linux:
