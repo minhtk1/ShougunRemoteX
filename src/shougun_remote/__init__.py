@@ -11,11 +11,9 @@ __email__ = "team@shougun.com"
 from .core.service_interface import IService
 from .core.config_interface import IConfigManager
 from .services import ShougunService
-# from .integration.csharp_bridge import CSharpBridge  # Commented out - module không tồn tại
 
 __all__ = [
     "IService",
     "IConfigManager", 
     "ShougunService",
-    # "CSharpBridge",  # Commented out - module không tồn tại
 ]

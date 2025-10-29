@@ -21,7 +21,6 @@
     "cpu_threshold": 80.0
   },
   "integration": {
-    "csharp_bridge_enabled": true,
     "api_port": 8080,
     "timeout_seconds": 30
   }

@@ -17,7 +17,6 @@ from shougun_remote.config import ConfigManager
 from shougun_remote.config.logger import LoguruLogger, LogLevel
 from shougun_remote.repositories import FileRepository
 from shougun_remote.models import Task, TaskStatus
-# CSharpBridge module không tồn tại - đã được xóa khỏi project
 
 
 class TestConfigManager:
@@ -179,9 +178,6 @@ class TestShougunService:
         
         # Stop service
         assert service.stop()
-
-
-# Các test cases cho CSharpBridge đã được xóa vì module không tồn tại
 
 
 if __name__ == "__main__":

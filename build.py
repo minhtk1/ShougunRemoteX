@@ -7,6 +7,7 @@ Unified build script for:
 import os
 import sys
 import PyInstaller.__main__
+import platform
 
 
 def parse_args() -> str:
@@ -21,6 +22,10 @@ def parse_args() -> str:
 def build(config: str) -> None:
     output_dir = os.path.join("dist", config)
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Xác định dấu phân cách cho --add-data dựa trên hệ điều hành
+    # Windows sử dụng dấu ;, Linux/macOS sử dụng dấu :
+    data_separator = ";" if platform.system() == "Windows" else ":"
 
     base_options = [
         "--onefile",
@@ -51,9 +56,7 @@ def build(config: str) -> None:
             "--name",
             "ShougunRemoteX_Service",
             "--add-data",
-            "src;src",
-            "--add-data",
-            "config;config",
+            f"{os.path.abspath('config')}{data_separator}config",
             "--hidden-import",
             "psutil",
             "--hidden-import",

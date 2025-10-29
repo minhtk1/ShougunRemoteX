@@ -116,8 +116,7 @@ def main():
     
     print("\nNext steps:")
     print("1. Run 'python examples/basic_usage.py' to test the service")
-    print("2. Use the C# wrapper in 'csharp_wrapper/' directory")
-    print("3. Check 'config/service.json' for configuration options")
+    print("2. Check 'config/service.json' for configuration options")
 
 
 if __name__ == "__main__":
