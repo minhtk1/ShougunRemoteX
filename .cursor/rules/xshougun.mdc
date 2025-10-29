@@ -94,6 +94,9 @@ alwaysApply: true
 - Group related functionality into modules
 - Keep main execution code in `if __name__ == "__main__":` blocks
 - Use absolute imports for clarity
+- **KHÔNG BAO GIỜ tạo file mới nếu file đó đã tồn tại - chỉ được cập nhật file hiện có**
+- Kiểm tra sự tồn tại của file trước khi tạo mới
+- Ưu tiên sửa đổi và mở rộng file hiện có thay vì tạo file mới
 
 ## Dependencies
 - Pin dependency versions in requirements.txt
@@ -275,6 +278,8 @@ def process_users(users: List[User]) -> Optional[User]:
 - [ ] **Comment bằng tiếng Việt cho tính năng mới**
 - [ ] **Virtual environment đã được activate trước khi build**
 - [ ] **License compliance: Code từ xpra-client có header comment GPL v2.0**
+- [ ] **KHÔNG BAO GIỜ tạo file mới nếu file đã tồn tại - chỉ cập nhật file hiện có**
+- [ ] **Kiểm tra sự tồn tại của file trước khi tạo mới**
 - [ ] No code duplication
 - [ ] Proper separation of concerns
 - [ ] Uses dependency injection where appropriate
