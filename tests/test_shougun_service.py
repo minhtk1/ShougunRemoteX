@@ -17,7 +17,7 @@ from shougun_remote.config import ConfigManager
 from shougun_remote.config.logger import LoguruLogger, LogLevel
 from shougun_remote.repositories import FileRepository
 from shougun_remote.models import Task, TaskStatus
-from shougun_remote.integration.csharp_bridge import CSharpBridge
+# CSharpBridge module không tồn tại - đã được xóa khỏi project
 
 
 class TestConfigManager:
@@ -181,49 +181,7 @@ class TestShougunService:
         assert service.stop()
 
 
-class TestCSharpBridge:
-    """Test cases cho CSharpBridge."""
-    
-    def test_bridge_initialization(self):
-        """Test bridge initialization."""
-        bridge = CSharpBridge()
-        assert bridge.initialize()
-    
-    def test_bridge_commands(self):
-        """Test bridge commands."""
-        bridge = CSharpBridge()
-        bridge.initialize()
-        
-        # Test start command
-        result = bridge.start_service()
-        result_data = json.loads(result)
-        assert "success" in result_data
-        
-        # Test status command
-        status_result = bridge.get_service_status()
-        status_data = json.loads(status_result)
-        assert "success" in status_data
-        
-        # Test stop command
-        stop_result = bridge.stop_service()
-        stop_data = json.loads(stop_result)
-        assert "success" in stop_data
-    
-    def test_execute_command(self):
-        """Test execute command."""
-        bridge = CSharpBridge()
-        bridge.initialize()
-        
-        # Test valid command
-        result = bridge.execute_command("status")
-        result_data = json.loads(result)
-        assert "success" in result_data
-        
-        # Test invalid command
-        result = bridge.execute_command("invalid_command")
-        result_data = json.loads(result)
-        assert not result_data["success"]
-        assert "Unknown command" in result_data["message"]
+# Các test cases cho CSharpBridge đã được xóa vì module không tồn tại
 
 
 if __name__ == "__main__":
