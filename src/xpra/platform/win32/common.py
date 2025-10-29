@@ -853,7 +853,7 @@ LCID_NEUTRAL = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)
 
 def FormatMessageSystem(message_id, langid: int = LCID_ENGLISH) -> str:
     # Import trực tiếp từ cùng module để tránh circular import
-    from third_party.xpra_client.platform.win32.constants import (
+    from xpra.platform.win32.constants import (
         FORMAT_MESSAGE_ALLOCATE_BUFFER, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
     )
     sys_flag = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS

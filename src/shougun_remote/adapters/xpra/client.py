@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from shougun_remote.core.interfaces import IRemoteClient
-from third_party.xpra_client.scripts.main import (
+from xpra.scripts.main import (
     make_client,
     do_run_client,
     connect_to_server,
 )
-from third_party.xpra_client.scripts.config import make_defaults_struct
+from xpra.scripts.config import make_defaults_struct
 
 
 class XpraRemoteClient(IRemoteClient):
@@ -54,4 +54,3 @@ class XpraRemoteClient(IRemoteClient):
     def quit(self, exit_code: int = 0) -> None:
         if self._client:
             self._client.quit(exit_code)
-

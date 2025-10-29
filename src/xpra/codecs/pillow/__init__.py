@@ -1,4 +1,31 @@
-from importlib import import_module as _im
-_m = _im('third_party.xpra_client.codecs.pillow')
-globals().update({k: getattr(_m, k) for k in dir(_m) if not k.startswith('_')})
+# This file is part of Xpra.
+# Copyright (C) 2015 Antoine Martin <antoine@xpra.org>
+# Xpra is released under the terms of the GNU GPL v2, or, at your option, any
+# later version. See the file COPYING for details.
 
+# pylint: disable=wrong-import-order
+# pylint: disable=wrong-import-position
+
+import logging
+
+from xpra.util.env import envbool
+from xpra.log import Logger
+
+PIL_DEBUG = envbool("XPRA_PIL_DEBUG", False)
+if PIL_DEBUG:   # pragma: no cover
+    log = Logger("encoder", "pillow")
+    log.info("enabling PIL.DEBUG")
+    level = logging.DEBUG
+else:
+    level = logging.INFO
+
+# newer versions use this logger,
+# we must initialize it before we load the class:
+for x in ("Image", "PngImagePlugin", "WebPImagePlugin", "JpegImagePlugin"):
+    logger = logging.getLogger("PIL.%s" % x)
+    logger.setLevel(level)
+
+import PIL  # noqa: E402
+from PIL import Image  # noqa: E402
+assert PIL is not None and Image is not None
+Image.init()

@@ -108,7 +108,7 @@ def do_get_system_conf_dirs() -> list[str]:
 
 def do_get_system_menu_dirs() -> list[str]:
     # Import trực tiếp từ cùng module để tránh circular import
-    from third_party.xpra_client.platform.win32 import get_common_startmenu_dir, get_startmenu_dir
+    from xpra.platform.win32 import get_common_startmenu_dir, get_startmenu_dir
     menu_dirs = []
     for menu_dir in (get_common_startmenu_dir(), get_startmenu_dir()):
         if not menu_dir or not os.path.exists(menu_dir) or not os.path.isdir(menu_dir):

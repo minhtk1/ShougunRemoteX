@@ -1,27 +1,205 @@
-# Code copied from xpra-client under GNU General Public License v2.0
-# Original source: xpra-client/xpra/os_util.py
-# License: GNU General Public License v2.0
-# This file is part of ShougunRemoteX-Python project
+#!/usr/bin/env python3
+# This file is part of Xpra.
+# Copyright (C) 2013 Antoine Martin <antoine@xpra.org>
+# Xpra is released under the terms of the GNU GPL v2, or, at your option, any
+# later version. See the file COPYING for details.
 
-# Import module từ xpra_client
-import sys
 import os
+import sys
+import uuid
+import struct
+from types import ModuleType
+from typing import NoReturn
 
-# Helper function để import module từ third_party.xpra_client
-def _import_module(name):
-    """Import module từ third_party.xpra_client"""
-    import importlib
-    # Thử import từ third_party.xpra_client trước
-    full_name = f'third_party.xpra_client.{name}'
+# only minimal imports go at the top
+# so that this file can be included everywhere
+# without too many side effects
+# pylint: disable=import-outside-toplevel
+
+WIN32: bool = sys.platform.startswith("win")
+OSX: bool = sys.platform.startswith("darwin")
+LINUX: bool = sys.platform.startswith("linux")
+NETBSD: bool = sys.platform.startswith("netbsd")
+OPENBSD: bool = sys.platform.startswith("openbsd")
+FREEBSD: bool = sys.platform.startswith("freebsd")
+POSIX: bool = os.name == "posix"
+BITS: int = struct.calcsize(b"P")*8
+
+
+GIR_VERSIONS: dict[str, str] = {
+    "Gtk": "3.0",
+    "Gdk": "3.0",
+    "GdkX11": "3.0",
+    "Pango": "1.0",
+    "PangoCairo": "1.0",
+    "GLib": "2.0",
+    "GObject": "2.0",
+    "GdkPixbuf": "2.0",
+    "IBus": "1.0",
+    "Gio": "2.0",
+    "Rsvg": "2.0",
+    "Gst": "1.0",
+    "NM": "1.0",
+    "GtkosxApplication": "1.0",
+    "Notify": "0.7",
+}
+
+
+def gi_import(mod="Gtk", version="") -> ModuleType:
+    version = version or GIR_VERSIONS.get(mod, "")
+    
+    # Trên Windows, PyGObject không được hỗ trợ tốt, tạo mock module
+    if WIN32:
+        class MockGtkModule:
+            # Thêm _version như tuple (3, 0) cho GTK 3.0
+            _version = (3, 0)
+            
+            def init_check(self, argv=None):
+                # Trên Windows không có GTK thật, luôn trả về True
+                # Nếu argv được truyền, trả về tuple như GTK 3 cũ
+                if argv is not None:
+                    return (True,)
+                return True
+            
+            def __getattr__(self, name):
+                # Trả về mock function cho các method/class được gọi
+                def mock_function(*args, **kwargs):
+                    # Không in ra console để tránh spam log
+                    return None
+                return mock_function
+        
+        return MockGtkModule()
+    
+    # Trên Linux/macOS, sử dụng gi thật
+    from xpra.util.env import SilenceWarningsContext
+    with SilenceWarningsContext(DeprecationWarning, ImportWarning):
+        import gi
+        try:
+            gi.require_version(mod, version)
+        except (AssertionError, ValueError) as e:
+            raise ImportError(f"unable to import {mod!r} {version=!r}: {e}") from None
+        import importlib
+        return importlib.import_module(f"gi.repository.{mod}")
+
+
+def is_admin() -> bool:
+    if WIN32:
+        from ctypes import windll
+        return windll.shell32.IsUserAnAdmin() != 0
+    return os.geteuid() == 0
+
+
+def getuid() -> int:
+    if POSIX:
+        return os.getuid()
+    return 0
+
+
+def getgid() -> int:
+    if POSIX:
+        return os.getgid()
+    return 0
+
+
+def get_shell_for_uid(uid: int) -> str:
+    if POSIX:
+        from pwd import getpwuid
+        try:
+            return getpwuid(uid).pw_shell
+        except KeyError:
+            pass
+    return ""
+
+
+def get_username_for_uid(uid: int) -> str:
+    if POSIX:
+        from pwd import getpwuid
+        try:
+            return getpwuid(uid).pw_name
+        except KeyError:
+            pass
+    return ""
+
+
+def get_home_for_uid(uid: int) -> str:
+    if POSIX:
+        from pwd import getpwuid
+        try:
+            return getpwuid(uid).pw_dir
+        except KeyError:
+            pass
+    return ""
+
+
+def get_groups(username: str) -> list[str]:
+    if POSIX:
+        import grp
+        return [gr.gr_name for gr in grp.getgrall() if username in gr.gr_mem]
+    return []
+
+
+def get_group_id(group: str) -> int:
     try:
-        return importlib.import_module(full_name)
-    except ImportError:
-        # Fallback: import trực tiếp từ third_party
-        third_party_path = os.path.join(os.path.dirname(__file__), '..', '..', 'third_party')
-        if third_party_path not in sys.path and os.path.exists(third_party_path):
-            sys.path.insert(0, third_party_path)
-        return importlib.import_module(f'xpra_client.{name}')
+        import grp
+        gr = grp.getgrnam(group)
+        return gr.gr_gid
+    except (ImportError, KeyError):
+        return -1
 
-# Import và export module
-_m = _import_module('os_util')
-globals().update({k: getattr(_m, k) for k in dir(_m) if not k.startswith('_')})
+
+def get_hex_uuid() -> str:
+    return uuid.uuid4().hex
+
+
+def get_int_uuid() -> int:
+    return uuid.uuid4().int
+
+
+def get_machine_id() -> str:
+    """
+        Try to get uuid string which uniquely identifies this machine.
+        Warning: only works on posix!
+        (which is ok since we only used it on posix at present)
+    """
+    v = ""
+    if POSIX:
+        from xpra.util.io import load_binary_file
+        for filename in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
+            b = load_binary_file(filename)
+            if b:
+                v = b.decode("latin1")
+                break
+    elif WIN32:
+        v = str(uuid.getnode())
+    return v.strip("\n\r")
+
+
+def get_user_uuid() -> str:
+    """
+        Try to generate an uuid string which is unique to this user.
+        (relies on get_machine_id to uniquely identify a machine)
+    """
+    user_uuid = os.environ.get("XPRA_USER_UUID")
+    if user_uuid:
+        return user_uuid
+    import hashlib
+    u = hashlib.sha256()
+
+    def uupdate(ustr) -> None:
+        u.update(ustr.encode("utf-8"))
+    uupdate(get_machine_id())
+    if POSIX:
+        uupdate("/")
+        uupdate(str(os.getuid()))
+        uupdate("/")
+        uupdate(str(os.getgid()))
+        uupdate("/")
+        uupdate(os.environ.get("DISPLAY", "") or os.environ.get("WAYLAND_DISPLAY", ""))
+    uupdate(os.path.expanduser("~/"))
+    return u.hexdigest()
+
+
+# here so we can override it when needed
+def force_quit(status=1) -> NoReturn:
+    # noinspection PyProtectedMember
+    os._exit(int(status))  # pylint: disable=protected-access

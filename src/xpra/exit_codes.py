@@ -1,27 +1,59 @@
-# Code copied from xpra-client under GNU General Public License v2.0
-# Original source: xpra-client/xpra/exit_codes.py
-# License: GNU General Public License v2.0
-# This file is part of ShougunRemoteX-Python project
+# This file is part of Xpra.
+# Copyright (C) 2010 Antoine Martin <antoine@xpra.org>
+# Xpra is released under the terms of the GNU GPL v2, or, at your option, any
+# later version. See the file COPYING for details.
 
-# Import module từ xpra_client
-import sys
-import os
+from enum import IntEnum
+from typing import TypeAlias
 
-# Helper function để import module từ third_party.xpra_client
-def _import_module(name):
-    """Import module từ third_party.xpra_client"""
-    import importlib
-    # Thử import từ third_party.xpra_client trước
-    full_name = f'third_party.xpra_client.{name}'
+
+class ExitCode(IntEnum):
+    OK = 0
+    CONNECTION_LOST = 1
+    TIMEOUT = 2
+    PASSWORD_REQUIRED = 3
+    PASSWORD_FILE_ERROR = 4
+    INCOMPATIBLE_VERSION = 5
+    ENCRYPTION = 6
+    FAILURE = 7
+    SSH_FAILURE = 8
+    PACKET_FAILURE = 9
+    MMAP_TOKEN_FAILURE = 10
+    NO_AUTHENTICATION = 11
+    UNSUPPORTED = 12
+    REMOTE_ERROR = 13
+    INTERNAL_ERROR = 14
+    FILE_TOO_BIG = 15
+    SSL_FAILURE = 16
+    SSH_KEY_FAILURE = 17
+    CONNECTION_FAILED = 18
+    SSL_CERTIFICATE_VERIFY_FAILURE = 19
+    NO_DISPLAY = 20
+    SERVER_ALREADY_EXISTS = 21
+    SOCKET_CREATION_ERROR = 22
+    VFB_ERROR = 23
+    FILE_NOT_FOUND = 24
+    UPGRADE = 25
+    IO_ERROR = 26
+    NO_DATA = 27
+    AUTHENTICATION_FAILED = 28
+    DEVICE_NOT_FOUND = 29
+    OPENGL_UNSAFE = 30
+    COMPONENT_MISSING = 31
+
+
+ExitValue: TypeAlias = ExitCode | int
+
+
+def exit_str(code) -> str:
     try:
-        return importlib.import_module(full_name)
-    except ImportError:
-        # Fallback: import trực tiếp từ third_party
-        third_party_path = os.path.join(os.path.dirname(__file__), '..', '..', 'third_party')
-        if third_party_path not in sys.path and os.path.exists(third_party_path):
-            sys.path.insert(0, third_party_path)
-        return importlib.import_module(f'xpra_client.{name}')
+        return ExitCode(code).name
+    except ValueError:
+        return f"unknown error {code}"
 
-# Import và export module
-_m = _import_module('exit_codes')
-globals().update({k: getattr(_m, k) for k in dir(_m) if not k.startswith('_')})
+
+RETRY_EXIT_CODES: list[ExitCode] = [
+    ExitCode.CONNECTION_LOST,
+    ExitCode.PACKET_FAILURE,
+    ExitCode.UPGRADE,
+]
