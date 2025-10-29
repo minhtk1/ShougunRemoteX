@@ -1,0 +1,11 @@
+prefix=C:/gtk-build/gtk/x64/release
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: gtksourceview-4
+Description: Source code editing Gtk+ widget.
+Version: 4.8.4
+Requires: glib-2.0 >=  2.48, gobject-2.0 >=  2.48, gio-2.0 >=  2.48, gtk+-3.0 >=  3.24
+Requires.private: libxml-2.0 >=  2.6, fribidi >=  0.19.7
+Libs: -L${libdir} -lgtksourceview-4
+Cflags: -I${includedir}/gtksourceview-4

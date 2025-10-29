@@ -1,0 +1,6 @@
+prefix=C:\gtk-build\gtk\x64\release
+
+Name: gsettings-desktop-schemas
+Description: Shared GSettings schemas for the desktop, including helper headers
+Version: 47.1
+Cflags: -IC:/gtk-build/gtk/x64/release/include/gsettings-desktop-schemas

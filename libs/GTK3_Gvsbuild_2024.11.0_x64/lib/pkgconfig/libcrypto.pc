@@ -1,0 +1,11 @@
+prefix=C:/gtk-build/gtk/x64/release
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+enginesdir=${libdir}/engines-3
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 3.4.0
+Libs: -L${libdir} -llibcrypto
+Cflags: -I${includedir}
