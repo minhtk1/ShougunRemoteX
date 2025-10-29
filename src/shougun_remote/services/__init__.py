@@ -269,17 +269,19 @@ class ShougunService(IService):
             # Tạo folder monitor
             self._folder_monitor = FolderMonitor(json_callback)
             
-            # Bắt đầu theo dõi
+            # Bắt đầu theo dõi (không bắt buộc)
             if self._folder_monitor.start_monitoring():
                 self._logger.info(f"Bắt đầu theo dõi folder: {self._folder_monitor.get_folder_path()}")
                 
                 # Quét các file JSON hiện có
                 self._folder_monitor.scan_existing_files()
             else:
-                self._logger.error("Không thể bắt đầu theo dõi folder")
+                self._logger.warning("Không thể bắt đầu theo dõi folder - tiếp tục chạy service mà không có folder monitoring")
+                self._folder_monitor = None  # Set về None để tránh lỗi
                 
         except Exception as e:
-            self._logger.error(f"Lỗi khởi tạo folder monitoring: {e}")
+            self._logger.warning(f"Lỗi khi khởi tạo folder monitoring: {e} - tiếp tục chạy service mà không có folder monitoring")
+            self._folder_monitor = None  # Set về None để tránh lỗi
     
     def _stop_folder_monitoring(self) -> None:
         """Dừng folder monitoring."""
