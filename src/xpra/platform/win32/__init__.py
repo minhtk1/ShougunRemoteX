@@ -283,9 +283,15 @@ def do_init_env() -> None:
                 if os.path.exists(tdir):
                     os.environ["GTK_THEME"] = theme
                     break
+            else:
+                # fall back to the built-in native Windows theme when packaged themes are absent
+                os.environ["GTK_THEME"] = "MS-Windows"
         # GStreamer's plugins:
         gst_dir = os.path.join(libdir, "gstreamer-1.0")   # ie: C:\Program Files\Xpra\lib\gstreamer-1.0
         os.environ["GST_PLUGIN_PATH"] = gst_dir
+    elif not os.environ.get("GTK_THEME"):
+        # ensure a native theme is used during development runs as well
+        os.environ["GTK_THEME"] = "MS-Windows"
 
 
 MB_ICONEXCLAMATION = 0x00000030

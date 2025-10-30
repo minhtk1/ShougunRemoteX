@@ -1,0 +1,130 @@
+# This file is part of Xpra.
+# Copyright (C) 2023 Antoine Martin <antoine@xpra.org>
+# Xpra is released under the terms of the GNU GPL v2, or, at your option, any
+# later version. See the file COPYING for details.
+
+
+from xpra.codecs.constants import TransientCodecException, CodecStateException
+
+# ctypedef int cudaError_t
+# cdef extern from "cuda_runtime_api.h":
+#    const char *cudaGetErrorName(cudaError_t err)
+#    const char *cudaGetErrorString(cudaError_t err)
+
+
+def cudacheck(r: int, fn=None) -> None:
+    if r == 0:
+        return
+    msg = get_error_name(r)
+    if fn:
+        msg = fn + f": {msg!r}"
+    if r in TRANSIENT_ERRORS:
+        raise TransientCodecException(msg)
+    if r in STATE_ERRORS:
+        raise CodecStateException(msg)
+    raise RuntimeError(msg)
+
+
+def get_error_name(error: int) -> str:
+    return CUDA_ERRORS.get(error) or str(error)
+
+
+TRANSIENT_ERRORS = (2, 304, 600, 701, 702, 802, 909)
+
+STATE_ERRORS = (3, 4, 200, 201, 202, 205, 206, 207, 208, 210, 211, 216, 219, 400, 401, 708, 709, 712, 713)
+
+
+CUDA_ERRORS: dict[int, str] = {
+    0: "SUCCESS",
+    1: "INVALID_VALUE",
+    2: "OUT_OF_MEMORY",
+    3: "NOT_INITIALIZED",
+    4: "DEINITIALIZED",
+    5: "PROFILER_DISABLED",
+    6: "PROFILER_NOT_INITIALIZED",
+    7: "PROFILER_ALREADY_STARTED",
+    8: "PROFILER_ALREADY_STOPPED",
+    34: "STUB_LIBRARY",
+    46: "DEVICE_UNAVAILABLE",
+    100: "NO_DEVICE",
+    101: "INVALID_DEVICE",
+    102: "DEVICE_NOT_LICENSED",
+    200: "INVALID_IMAGE",
+    201: "INVALID_CONTEXT",
+    202: "CONTEXT_ALREADY_CURRENT",
+    205: "MAP_FAILED",
+    206: "UNMAP_FAILED",
+    207: "ARRAY_IS_MAPPED",
+    208: "ALREADY_MAPPED",
+    209: "NO_BINARY_FOR_GPU",
+    210: "ALREADY_ACQUIRED",
+    211: "NOT_MAPPED",
+    212: "NOT_MAPPED_AS_ARRAY",
+    213: "NOT_MAPPED_AS_POINTER",
+    214: "ECC_UNCORRECTABLE",
+    215: "UNSUPPORTED_LIMIT",
+    216: "CONTEXT_ALREADY_IN_USE",
+    217: "PEER_ACCESS_UNSUPPORTED",
+    218: "INVALID_PTX",
+    219: "INVALID_GRAPHICS_CONTEXT",
+    220: "NVLINK_UNCORRECTABLE",
+    221: "JIT_COMPILER_NOT_FOUND",
+    222: "UNSUPPORTED_PTX_VERSION",
+    223: "JIT_COMPILATION_DISABLED",
+    224: "UNSUPPORTED_EXEC_AFFINITY",
+    300: "INVALID_SOURCE",
+    301: "FILE_NOT_FOUND",
+    302: "SHARED_OBJECT_SYMBOL_NOT_FOUND",
+    303: "SHARED_OBJECT_INIT_FAILED",
+    304: "OPERATING_SYSTEM",
+    400: "INVALID_HANDLE",
+    401: "ILLEGAL_STATE",
+    500: "NOT_FOUND",
+    600: "NOT_READY",
+    700: "ILLEGAL_ADDRESS",
+    701: "LAUNCH_OUT_OF_RESOURCES",
+    702: "LAUNCH_TIMEOUT",
+    703: "LAUNCH_INCOMPATIBLE_TEXTURING",
+    704: "PEER_ACCESS_ALREADY_ENABLED",
+    705: "PEER_ACCESS_NOT_ENABLED",
+    708: "PRIMARY_CONTEXT_ACTIVE",
+    709: "CONTEXT_IS_DESTROYED",
+    710: "ASSERT",
+    711: "TOO_MANY_PEERS",
+    712: "HOST_MEMORY_ALREADY_REGISTERED",
+    713: "HOST_MEMORY_NOT_REGISTERED",
+    714: "HARDWARE_STACK_ERROR",
+    715: "ILLEGAL_INSTRUCTION",
+    716: "MISALIGNED_ADDRESS",
+    717: "INVALID_ADDRESS_SPACE",
+    718: "INVALID_PC",
+    719: "LAUNCH_FAILED",
+    720: "COOPERATIVE_LAUNCH_TOO_LARGE",
+    800: "NOT_PERMITTED",
+    801: "NOT_SUPPORTED",
+    999: "UNKNOWN",
+    802: "SYSTEM_NOT_READY",
+    803: "SYSTEM_DRIVER_MISMATCH",
+    804: "COMPAT_NOT_SUPPORTED_ON_DEVICE",
+    805: "MPS_CONNECTION_FAILED",
+    806: "MPS_RPC_FAILURE",
+    807: "MPS_SERVER_NOT_READY",
+    808: "MPS_MAX_CLIENTS_REACHED",
+    809: "MPS_MAX_CONNECTIONS_REACHED",
+    810: "MPS_CLIENT_TERMINATED",
+    811: "CDP_NOT_SUPPORTED",
+    812: "CDP_VERSION_MISMATCH",
+    900: "STREAM_CAPTURE_UNSUPPORTED",
+    901: "STREAM_CAPTURE_INVALIDATED",
+    902: "STREAM_CAPTURE_MERGE",
+    903: "STREAM_CAPTURE_UNMATCHED",
+    904: "STREAM_CAPTURE_UNJOINED",
+    905: "STREAM_CAPTURE_ISOLATION",
+    906: "STREAM_CAPTURE_IMPLICIT",
+    907: "CAPTURED_EVENT",
+    908: "STREAM_CAPTURE_WRONG_THREAD",
+    909: "TIMEOUT",
+    910: "GRAPH_EXEC_UPDATE_FAILURE",
+    911: "EXTERNAL_DEVICE",
+    912: "INVALID_CLUSTER_SIZE",
+}
