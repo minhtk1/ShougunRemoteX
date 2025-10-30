@@ -268,3 +268,9 @@ def reaper_cleanup() -> None:
     # so we don't try to reinitialize it from the wrong thread
     # (signal requires the main thread)
     # singleton = None
+
+
+
+def get_child_reaper() -> ChildReaper:
+    """Compatibility alias for code expecting snake_case accessor."""
+    return getChildReaper()

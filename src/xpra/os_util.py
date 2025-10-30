@@ -48,29 +48,7 @@ GIR_VERSIONS: dict[str, str] = {
 def gi_import(mod="Gtk", version="") -> ModuleType:
     version = version or GIR_VERSIONS.get(mod, "")
     
-    # Trên Windows, PyGObject không được hỗ trợ tốt, tạo mock module
-    if WIN32:
-        class MockGtkModule:
-            # Thêm _version như tuple (3, 0) cho GTK 3.0
-            _version = (3, 0)
-            
-            def init_check(self, argv=None):
-                # Trên Windows không có GTK thật, luôn trả về True
-                # Nếu argv được truyền, trả về tuple như GTK 3 cũ
-                if argv is not None:
-                    return (True,)
-                return True
-            
-            def __getattr__(self, name):
-                # Trả về mock function cho các method/class được gọi
-                def mock_function(*args, **kwargs):
-                    # Không in ra console để tránh spam log
-                    return None
-                return mock_function
-        
-        return MockGtkModule()
-    
-    # Trên Linux/macOS, sử dụng gi thật
+    # Sử dụng PyGObject thật trên tất cả platform
     from xpra.util.env import SilenceWarningsContext
     with SilenceWarningsContext(DeprecationWarning, ImportWarning):
         import gi

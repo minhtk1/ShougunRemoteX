@@ -1,13 +1,46 @@
 import sys
 import os
+import atexit
+from datetime import datetime
+from urllib.parse import urlparse
+
+IS_FROZEN = getattr(sys, "frozen", False)
+
+
+def setup_frozen_logging(base_path: str) -> None:
+    if not IS_FROZEN:
+        return
+    exec_dir = os.path.dirname(os.path.abspath(sys.executable))
+    logs_dir = os.path.join(exec_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    log_file = os.path.join(logs_dir, "Xpra_cmd.log")
+    log_stream = open(log_file, "a", encoding="utf-8", buffering=1)
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_stream.write(f"\n[{timestamp}] Xpra_cmd launch args: {' '.join(sys.argv[1:])}\n")
+    sys.stdout = log_stream
+    sys.stderr = log_stream
+
+    def _close_stream() -> None:
+        try:
+            log_stream.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Xpra_cmd exiting\n")
+        finally:
+            log_stream.close()
+
+    atexit.register(_close_stream)
+    os.environ.setdefault("XPRA_LOG_DIR", logs_dir)
+
+
+if IS_FROZEN:
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+setup_frozen_logging(base_path)
 
 # Setup GTK3 runtime paths TRƯỚC khi import bất kỳ module nào khác
 # Điều này quan trọng cho PyInstaller để tìm thấy DLL và typelib files
-if getattr(sys, 'frozen', False):
+if IS_FROZEN:
     # PyInstaller tạo biến _MEIPASS chứa đường dẫn đến temp directory
-    base_path = sys._MEIPASS
-    
-    # Thiết lập PATH để tìm DLL trong thư mục lib
     lib_path = os.path.join(base_path, "lib")
     if os.path.exists(lib_path):
         path = os.environ.get("PATH", "")
@@ -43,6 +76,22 @@ if getattr(sys, 'frozen', False):
         if os.path.exists(fontconfig_conf):
             os.environ["FONTCONFIG_FILE"] = fontconfig_conf
 
+xpra_share = (
+    os.path.join(base_path, "xpra", "share", "xpra")
+    if IS_FROZEN
+    else os.path.abspath(os.path.join(base_path, "..", "..", "xpra", "share", "xpra"))
+)
+
+if os.path.exists(xpra_share):
+    # Thiết lập các biến môi trường để xpra tìm đúng thư mục resources khi chạy ở chế độ đóng gói
+    os.environ.setdefault("XPRA_APP_DIR", xpra_share)
+    os.environ.setdefault("XPRA_RESOURCES_DIR", xpra_share)
+    os.environ.setdefault("XPRA_ICON_DIR", os.path.join(xpra_share, "icons"))
+    os.environ.setdefault("XPRA_IMAGE_DIR", os.path.join(xpra_share, "images"))
+
+# Import pyinstaller_gtk_runtime để setup GTK3 runtime paths
+from shougun_remote.app import pyinstaller_gtk_runtime  # noqa: F401
+
 # Import các module xpra để đảm bảo PyInstaller detect được các module redirect
 # Điều này cần thiết để module redirect hoạt động đúng trong PyInstaller build
 import xpra  # noqa: F401
@@ -54,10 +103,14 @@ import argparse
 from shougun_remote.adapters.xpra.client import XpraRemoteClient
 
 
+def _str_to_bool(value: str) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Xpra Remote Desktop Client")
     parser.add_argument("command", help="Command: attach")
-    parser.add_argument("url", help="Connection URL: tcp://host:port")
+    parser.add_argument("url", help="Connection URL: tcp://host:port[/display]")
     parser.add_argument("--windows", default="yes")
     parser.add_argument("--dpi", type=int, default=96)
     parser.add_argument("--opengl", default="no")
@@ -67,42 +120,59 @@ def main() -> int:
     parser.add_argument("--modal-windows", dest="modal_windows", default="yes")
     parser.add_argument("--reconnect", default="yes")
     parser.add_argument("--keyboard-raw", dest="keyboard_raw", default="no")
+    parser.add_argument(
+        "--printing",
+        choices=["yes", "no", "ask", "auto"],
+        default="no",
+        help="Printing support (yes|no|ask|auto). Default: no.",
+    )
+    parser.add_argument(
+        "--audio",
+        choices=["yes", "no"],
+        default="no",
+        help="Bật hoặc tắt toàn bộ âm thanh (yes|no). Mặc định: no.",
+    )
     args = parser.parse_args()
 
     if args.command.lower() != "attach":
         print("Only 'attach' is supported", file=sys.stderr)
         return 2
-
-    # Parse tcp://host:port
     url = args.url
-    if not url.startswith("tcp://"):
+    parsed = urlparse(url)
+    if parsed.scheme != "tcp":
         print("Only tcp:// URLs are supported", file=sys.stderr)
         return 2
-    try:
-        host_port = url.replace("tcp://", "", 1)
-        host, port_str = host_port.split(":", 1)
-        port = int(port_str)
-    except Exception:
+    host = parsed.hostname
+    port = parsed.port or 0
+    display_path = parsed.path.lstrip("/")
+    if not host or port < 0:
         print(f"Invalid URL format: {url}", file=sys.stderr)
         return 2
 
     client = XpraRemoteClient()
-    client.connect(
-        host,
-        port,
-        windows=(args.windows == "yes"),
-        dpi=args.dpi,
-        opengl=args.opengl,
-        encoding=args.encoding,
-        clipboard=(args.clipboard == "yes"),
-        notifications=(args.notifications == "yes"),
-        modal_windows=(args.modal_windows == "yes"),
-        reconnect=(args.reconnect == "yes"),
-        keyboard_raw=(args.keyboard_raw == "yes"),
-    )
-    return client.run()
+    try:
+        client.connect(
+            host,
+            port,
+            windows=_str_to_bool(args.windows),
+            dpi=args.dpi,
+            opengl=args.opengl,
+            encoding=args.encoding,
+            clipboard=_str_to_bool(args.clipboard),
+            notifications=_str_to_bool(args.notifications),
+            modal_windows=_str_to_bool(args.modal_windows),
+            reconnect=_str_to_bool(args.reconnect),
+            keyboard_raw=_str_to_bool(args.keyboard_raw),
+            printing=args.printing,
+            audio=args.audio,
+            raw_url=url,
+            display_path=display_path,
+        )
+        return client.run()
+    except Exception as exc:
+        print(f"Failed to start Xpra client: {exc}", file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

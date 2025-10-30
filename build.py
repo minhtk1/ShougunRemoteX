@@ -8,6 +8,7 @@ import os
 import sys
 import PyInstaller.__main__
 import platform
+import subprocess
 
 
 def parse_args() -> str:
@@ -19,9 +20,78 @@ def parse_args() -> str:
     return config
 
 
+def install_gtk_packages() -> None:
+    """Cài đặt PyGObject và PyCairo từ GTK3 runtime"""
+    gtk_root = os.path.abspath(os.path.join("libs", "GTK3_Gvsbuild_2024.11.0_x64"))
+    python_dir = os.path.join(gtk_root, "python")
+    
+    if not os.path.exists(python_dir):
+        print("Warning: GTK3 python directory not found, skipping PyGObject installation")
+        return
+    
+    # Tìm các file wheel
+    wheel_files = []
+    for file in os.listdir(python_dir):
+        if file.endswith('.whl'):
+            wheel_files.append(os.path.join(python_dir, file))
+    
+    if not wheel_files:
+        print("Warning: No wheel files found in GTK3 python directory")
+        return
+    
+    print("Installing PyGObject and PyCairo from GTK3 runtime...")
+    for wheel_file in wheel_files:
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", wheel_file, "--force-reinstall"], 
+                         check=True, capture_output=True)
+            print(f"  Installed: {os.path.basename(wheel_file)}")
+        except subprocess.CalledProcessError as e:
+            print(f"  Warning: Failed to install {os.path.basename(wheel_file)}: {e}")
+            print(f"  stderr: {e.stderr.decode() if e.stderr else 'No error details'}")
+
+
+def setup_gtk_environment() -> None:
+    """Thiết lập environment variables cho GTK3 runtime để PyInstaller có thể tìm thấy DLLs"""
+    gtk_root = os.path.abspath(os.path.join("libs", "GTK3_Gvsbuild_2024.11.0_x64"))
+    gtk_bin = os.path.join(gtk_root, "bin")
+    gtk_lib = os.path.join(gtk_root, "lib")
+    
+    if not os.path.exists(gtk_bin):
+        print("Warning: GTK3 bin directory not found, skipping environment setup")
+        return
+    
+    print("Setting up GTK3 environment variables...")
+    
+    # Thêm GTK3 bin directory vào PATH
+    current_path = os.environ.get("PATH", "")
+    if gtk_bin not in current_path:
+        os.environ["PATH"] = f"{gtk_bin};{current_path}"
+        print(f"  Added {gtk_bin} to PATH")
+    
+    # Thiết lập các environment variables cần thiết cho GTK3
+    os.environ["GTK_PATH"] = gtk_root
+    os.environ["GI_TYPELIB_PATH"] = os.path.join(gtk_lib, "girepository-1.0")
+    os.environ["GDK_PIXBUF_MODULE_FILE"] = os.path.join(gtk_lib, "gdk-pixbuf-2.0", "2.10.0", "loaders.cache")
+    os.environ["FONTCONFIG_PATH"] = os.path.join(gtk_root, "etc", "fonts")
+    os.environ["FONTCONFIG_FILE"] = os.path.join(gtk_root, "etc", "fonts", "fonts.conf")
+    
+    # Thiết lập PKG_CONFIG_PATH để tìm thấy .pc files
+    pkg_config_path = os.path.join(gtk_lib, "pkgconfig")
+    if os.path.exists(pkg_config_path):
+        os.environ["PKG_CONFIG_PATH"] = pkg_config_path
+    
+    print("  Environment variables set successfully")
+
+
 def build(config: str) -> None:
     output_dir = os.path.join("dist", config)
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Cài đặt PyGObject và PyCairo từ GTK3 runtime
+    install_gtk_packages()
+    
+    # Thiết lập environment variables cho GTK3 runtime
+    setup_gtk_environment()
     
     # Xác định dấu phân cách cho --add-data dựa trên hệ điều hành
     # Windows sử dụng dấu ;, Linux/macOS sử dụng dấu :
@@ -36,6 +106,7 @@ def build(config: str) -> None:
     gtk_lib = os.path.join(gtk_root, "lib")
     gtk_girepo = os.path.join(gtk_lib, "girepository-1.0")
     gtk_etc = os.path.join(gtk_root, "etc")
+    gtk_site_packages = os.path.join(gtk_lib, "site-packages")
 
     base_options = [
         "--onefile",
@@ -51,6 +122,13 @@ def build(config: str) -> None:
         ".",
         "--clean",  # Thêm option để clean build cache
     ]
+    
+    # Thêm đường dẫn đến GTK3 site-packages để PyInstaller có thể tìm thấy PyGObject
+    if os.path.exists(gtk_site_packages):
+        base_options.extend([
+            "--paths",
+            gtk_site_packages,
+        ])
 
     if config == "Debug":
         base_options.extend(["--console", "--debug", "all"])
@@ -98,6 +176,9 @@ def build(config: str) -> None:
             "watchdog.observers",
             "--hidden-import",
             "watchdog.events",
+            "--hidden-import",
+            "importlib_resources",
+            # Không còn dùng trees API của importlib_resources
             "python_service.py",
         ]
     )
@@ -107,6 +188,8 @@ def build(config: str) -> None:
     
     # Chuẩn bị các file GTK3 cần thiết
     gtk_options = []
+    # Không sử dụng đường dẫn ngoài dự án cho xpra; chỉ bundle những gì nằm trong dự án
+    # hoặc được cài trong môi trường ảo để đảm bảo tính tự chứa của sản phẩm build
     if os.path.exists(gtk_bin):
         # Copy tất cả DLL từ GTK3 bin directory
         print(f"  Including GTK3 DLLs from {gtk_bin}...")
@@ -152,12 +235,36 @@ def build(config: str) -> None:
             f"{gtk_etc}{data_separator}etc",
         ])
     
+    # Copy PyGObject và PyCairo từ GTK3 site-packages
+    if os.path.exists(gtk_site_packages):
+        print(f"  Including PyGObject and PyCairo from {gtk_site_packages}...")
+        gtk_options.extend([
+            "--add-data",
+            f"{gtk_site_packages}{data_separator}lib/site-packages",
+        ])
+        
+        # Thêm các file Python cụ thể để đảm bảo PyInstaller tìm thấy chúng
+        gi_path = os.path.join(gtk_site_packages, "gi")
+        cairo_path = os.path.join(gtk_site_packages, "cairo")
+        if os.path.exists(gi_path):
+            gtk_options.extend([
+                "--add-data",
+                f"{gi_path}{data_separator}lib/site-packages/gi",
+            ])
+        if os.path.exists(cairo_path):
+            gtk_options.extend([
+                "--add-data",
+                f"{cairo_path}{data_separator}lib/site-packages/cairo",
+            ])
+    
     PyInstaller.__main__.run(
         [
             *base_options,
             *gtk_options,
             "--name",
             f"Xpra_cmd{exe_extension}",
+            "--additional-hooks-dir",
+            os.path.join("src", "shougun_remote", "app"),
             "--hidden-import",
             "shougun_remote",
             "--hidden-import",
@@ -262,6 +369,45 @@ def build(config: str) -> None:
             "--hidden-import",
             "xpra.net.common",
             "--hidden-import",
+            "xpra.net.crypto",
+            "--hidden-import",
+            "xpra.net.digest",
+            # Bổ sung module cần thiết cho tính năng in file qua mạng của xpra
+            # Tránh lỗi: ModuleNotFoundError: No module named 'xpra.net.file_transfer'
+            "--hidden-import",
+            "xpra.net.file_transfer",
+            # Thu thập toàn bộ submodules trong xpra.net (đảm bảo không thiếu module phụ)
+            "--collect-submodules",
+            "xpra.net",
+            "--collect-submodules",
+            "xpra.client",
+            "--collect-submodules",
+            "xpra.client.gtk3",
+            "--collect-submodules",
+            "xpra.client.gui",
+            "--collect-submodules",
+            "xpra.client.mixins",
+            "--collect-submodules",
+            "xpra.platform",
+            "--collect-submodules",
+            "xpra.os_util",
+            "--collect-submodules",
+            "xpra.util",
+            "--collect-submodules",
+            "xpra.gtk",
+            "--collect-data",
+            "xpra",
+            "--collect-data",
+            "xpra.client",
+            "--hidden-import",
+            "xpra.client.gui.window_border",
+            "--hidden-import",
+            "xpra.client.mixins.windows",
+            "--hidden-import",
+            "xpra.codecs.constants",
+            "--hidden-import",
+            "xpra.client.gui.keyboard_shortcuts_parser",
+            "--hidden-import",
             "xpra.util.stats",
             "--hidden-import",
             "xpra.util.objects",
@@ -277,6 +423,9 @@ def build(config: str) -> None:
             "xpra.keyboard.common",
             "--hidden-import",
             "xpra.exit_codes",
+            "--hidden-import",
+            "importlib_resources",
+            # Không còn dùng trees API của importlib_resources
             # PyGObject (gi module) - cần thiết cho GTK3 backend
             "--hidden-import",
             "gi",

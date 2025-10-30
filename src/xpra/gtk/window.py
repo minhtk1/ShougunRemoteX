@@ -9,8 +9,34 @@ from collections.abc import Callable
 from xpra.os_util import WIN32, gi_import
 from xpra.util.env import first_time
 
-Gtk = gi_import("Gtk")
-Gdk = gi_import("Gdk")
+# Import GTK một cách an toàn để tránh lỗi khi module được import
+try:
+    Gtk = gi_import("Gtk")
+    Gdk = gi_import("Gdk")
+except Exception as e:
+    # Nếu không thể import GTK, tạo mock objects để tránh lỗi
+    print(f"Warning: Failed to import GTK: {e}")
+    class MockGtk:
+        def __getattr__(self, name):
+            return None
+    class MockGdk:
+        class WindowType:
+            TOPLEVEL = 0
+        class WindowWindowClass:
+            INPUT_OUTPUT = 0
+        class WindowAttr:
+            pass
+        class WindowAttributesType:
+            X = 1
+            Y = 2
+            TITLE = 4
+            VISUAL = 8
+            NOREDIR = 16
+        class Window:
+            def __init__(self, *args, **kwargs):
+                pass
+    Gtk = MockGtk()
+    Gdk = MockGdk()
 
 
 def add_close_accel(window, callback: Callable) -> list[Gtk.AccelGroup]:
@@ -41,9 +67,12 @@ def GDKWindow(*args, **kwargs) -> Gdk.Window:
 
 
 def new_GDKWindow(gdk_window_class,
-                  parent=None, width=1, height=1, window_type=Gdk.WindowType.TOPLEVEL,
+                  parent=None, width=1, height=1, window_type=None,
                   event_mask=0, wclass=Gdk.WindowWindowClass.INPUT_OUTPUT, title=None,
                   x=None, y=None, override_redirect=False, visual=None) -> Gdk.Window:
+    # Sử dụng Gdk.WindowType.TOPLEVEL làm default nếu không được cung cấp
+    if window_type is None:
+        window_type = Gdk.WindowType.TOPLEVEL
     attributes_mask = 0
     attributes = Gdk.WindowAttr()
     if x is not None:

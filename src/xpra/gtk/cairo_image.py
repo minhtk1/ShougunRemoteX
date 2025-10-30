@@ -43,7 +43,7 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
     image_surface = ImageSurface(fmt, width, height)
 
     # Lấy pixel data từ surface
-    ctx = image_surface.get_context()
+    surface_stride = image_surface.get_stride()
     surface_data = image_surface.get_data()
 
     # Convert pixel data dựa trên format
@@ -53,7 +53,7 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
             for y in range(height):
                 for x in range(width):
                     src_idx = x * 3 + y * stride
-                    dst_idx = x * 4 + y * image_surface.get_stride()
+                    dst_idx = x * 4 + y * surface_stride
                     if src_idx + 2 < len(pixels) and dst_idx + 3 < len(surface_data):
                         surface_data[dst_idx + 0] = pixels[src_idx + 0]  # B
                         surface_data[dst_idx + 1] = pixels[src_idx + 1]  # G
@@ -63,7 +63,7 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
             for y in range(height):
                 for x in range(width):
                     src_idx = x * 3 + y * stride
-                    dst_idx = x * 4 + y * image_surface.get_stride()
+                    dst_idx = x * 4 + y * surface_stride
                     if src_idx + 2 < len(pixels) and dst_idx + 3 < len(surface_data):
                         surface_data[dst_idx + 0] = pixels[src_idx + 2]  # B
                         surface_data[dst_idx + 1] = pixels[src_idx + 1]  # G
@@ -72,16 +72,16 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
         elif rgb_format in ("BGRX", "BGRA"):
             # Direct copy với stride adjustment
             for y in range(height):
-                copy_len = min(stride, image_surface.get_stride())
+                copy_len = min(stride, surface_stride)
                 src_start = y * stride
-                dst_start = y * image_surface.get_stride()
+                dst_start = y * surface_stride
                 if src_start + copy_len <= len(pixels) and dst_start + copy_len <= len(surface_data):
                     surface_data[dst_start:dst_start + copy_len] = pixels[src_start:src_start + copy_len]
         elif rgb_format in ("RGBX", "RGBA"):
             for y in range(height):
                 for x in range(width):
                     src_idx = x * 4 + y * stride
-                    dst_idx = x * 4 + y * image_surface.get_stride()
+                    dst_idx = x * 4 + y * surface_stride
                     if src_idx + 3 < len(pixels) and dst_idx + 3 < len(surface_data):
                         surface_data[dst_idx + 0] = pixels[src_idx + 2]  # B
                         surface_data[dst_idx + 1] = pixels[src_idx + 1]  # G
@@ -93,16 +93,16 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
         if rgb_format == "BGRA":
             # Direct copy
             for y in range(height):
-                copy_len = min(stride, image_surface.get_stride())
+                copy_len = min(stride, surface_stride)
                 src_start = y * stride
-                dst_start = y * image_surface.get_stride()
+                dst_start = y * surface_stride
                 if src_start + copy_len <= len(pixels) and dst_start + copy_len <= len(surface_data):
                     surface_data[dst_start:dst_start + copy_len] = pixels[src_start:src_start + copy_len]
         elif rgb_format == "RGBA":
             for y in range(height):
                 for x in range(width):
                     src_idx = x * 4 + y * stride
-                    dst_idx = x * 4 + y * image_surface.get_stride()
+                    dst_idx = x * 4 + y * surface_stride
                     if src_idx + 3 < len(pixels) and dst_idx + 3 < len(surface_data):
                         surface_data[dst_idx + 0] = pixels[src_idx + 2]  # B
                         surface_data[dst_idx + 1] = pixels[src_idx + 1]  # G
@@ -116,7 +116,7 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
                         src_idx = x * 4 + y * stride
                     else:
                         src_idx = x * 3 + y * stride
-                    dst_idx = x * 4 + y * image_surface.get_stride()
+                    dst_idx = x * 4 + y * surface_stride
                     if src_idx < len(pixels) and dst_idx + 3 < len(surface_data):
                         if rgb_format == "RGBX":
                             surface_data[dst_idx + 0] = pixels[src_idx + 2]  # B
@@ -144,9 +144,9 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
         if rgb_format == "r210":
             # Direct copy
             for y in range(height):
-                copy_len = min(stride, image_surface.get_stride())
+                copy_len = min(stride, surface_stride)
                 src_start = y * stride
-                dst_start = y * image_surface.get_stride()
+                dst_start = y * surface_stride
                 if src_start + copy_len <= len(pixels) and dst_start + copy_len <= len(surface_data):
                     surface_data[dst_start:dst_start + copy_len] = pixels[src_start:src_start + copy_len]
         else:
@@ -155,9 +155,9 @@ def make_image_surface(fmt, rgb_format: str, pixels, width: int, height: int, st
         if rgb_format == "BGR565":
             # Direct copy
             for y in range(height):
-                copy_len = min(stride, image_surface.get_stride())
+                copy_len = min(stride, surface_stride)
                 src_start = y * stride
-                dst_start = y * image_surface.get_stride()
+                dst_start = y * surface_stride
                 if src_start + copy_len <= len(pixels) and dst_start + copy_len <= len(surface_data):
                     surface_data[dst_start:dst_start + copy_len] = pixels[src_start:src_start + copy_len]
         else:

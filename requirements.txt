@@ -5,6 +5,7 @@ pydantic>=2.5.2
 loguru>=0.7.2
 pyyaml>=6.0.1
 watchdog>=3.0.0
+importlib_resources>=6.0.0
 
 # Platform-specific dependencies
 pywin32>=306; sys_platform == 'win32'
@@ -29,7 +30,6 @@ Pillow>=9.0.0
 # rencode>=1.0.8
 
 # GUI dependencies - Xpra client cần PyGObject cho GTK3 backend
-# LƯU Ý: Trên Windows, cần cài đặt PyGObject qua MSYS2 hoặc từ pre-built wheels
-# Nếu không có MSYS2, có thể cần sử dụng Qt6 backend thay vì GTK3
-# PyGObject>=3.40.0; sys_platform == 'win32'
-# pycairo>=1.20.0; sys_platform == 'win32'
+# Sử dụng PyGObject từ GTK3 runtime đã có sẵn trong libs/GTK3_Gvsbuild_2024.11.0_x64
+# PyGObject>=3.50.0; sys_platform == 'win32'
+# pycairo>=1.27.0; sys_platform == 'win32'

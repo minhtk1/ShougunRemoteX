@@ -3,12 +3,76 @@
 # Xpra is released under the terms of the GNU GPL v2, or, at your option, any
 # later version. See the file COPYING for details.
 
+from __future__ import annotations
+
 from xpra.os_util import OSX, POSIX, gi_import
 from xpra.util.env import first_time, IgnoreWarningsContext
 from xpra.util.system import is_X11
 from xpra.log import Logger
 
 Gdk = gi_import("Gdk")
+
+# Kiểm tra và định nghĩa Gdk.GrabStatus proxy một cách an toàn
+# Trên Windows với GTK3, Gdk.GrabStatus có thể không tồn tại hoặc có cách truy cập khác
+# Tạo một proxy object để thay thế Gdk.GrabStatus khi nó không tồn tại
+if not hasattr(Gdk, 'GrabStatus'):
+    # Fallback: tạo một object giả với các thuộc tính cần thiết
+    class FallbackGrabStatus:
+        """Fallback object cho Gdk.GrabStatus khi không tồn tại trên platform"""
+        SUCCESS = 0
+        ALREADY_GRABBED = 1
+        INVALID_TIME = 2
+        NOT_VIEWABLE = 3
+        FROZEN = 4
+        FAILED = 5  # Không có trong GRAB_STATUS_STRING nhưng được sử dụng trong code
+    
+    # Gán vào Gdk để có thể sử dụng Gdk.GrabStatus trong code khác
+    # Lưu ý: gi_import trả về cùng một singleton, vì vậy việc gán này sẽ có tác dụng
+    # với tất cả các module khác nếu util.py được import trước
+    try:
+        Gdk.GrabStatus = FallbackGrabStatus
+    except (TypeError, AttributeError):
+        # Nếu không thể gán trực tiếp, tạo một wrapper
+        pass
+
+# Định nghĩa GRAB_STATUS_STRING với các giá trị từ Gdk.GrabStatus
+# Sử dụng try-except để xử lý trường hợp Gdk.GrabStatus không tồn tại
+try:
+    # Thử truy cập Gdk.GrabStatus
+    if hasattr(Gdk, 'GrabStatus'):
+        GRAB_STATUS_STRING = {
+            Gdk.GrabStatus.SUCCESS: "SUCCESS",
+            Gdk.GrabStatus.ALREADY_GRABBED: "ALREADY_GRABBED",
+            Gdk.GrabStatus.INVALID_TIME: "INVALID_TIME",
+            Gdk.GrabStatus.NOT_VIEWABLE: "NOT_VIEWABLE",
+            Gdk.GrabStatus.FROZEN: "FROZEN",
+        }
+        # Thêm FAILED nếu có
+        if hasattr(Gdk.GrabStatus, 'FAILED'):
+            GRAB_STATUS_STRING[Gdk.GrabStatus.FAILED] = "FAILED"
+    else:
+        # Fallback: sử dụng các giá trị số nếu enum không tồn tại
+        GRAB_STATUS_STRING = {
+            0: "SUCCESS",
+            1: "ALREADY_GRABBED",
+            2: "INVALID_TIME",
+            3: "NOT_VIEWABLE",
+            4: "FROZEN",
+            5: "FAILED",
+        }
+except (AttributeError, TypeError) as e:
+    # Nếu không thể truy cập Gdk.GrabStatus, sử dụng giá trị fallback
+    log = Logger("gtk", "util")
+    log.warn(f"Warning: Cannot access Gdk.GrabStatus: {e}")
+    log.warn("Using fallback GRAB_STATUS_STRING values")
+    GRAB_STATUS_STRING = {
+        0: "SUCCESS",
+        1: "ALREADY_GRABBED",
+        2: "INVALID_TIME",
+        3: "NOT_VIEWABLE",
+        4: "FROZEN",
+        5: "FAILED",
+    }
 
 
 def get_default_root_window() -> Gdk.Window | None:
@@ -44,15 +108,6 @@ def get_root_size(default: None | tuple[int, int] = (1920, 1024)) -> tuple[int, 
             log.warn(f" using {default} instead")
         return default
     return w, h
-
-
-GRAB_STATUS_STRING = {
-    Gdk.GrabStatus.SUCCESS: "SUCCESS",
-    Gdk.GrabStatus.ALREADY_GRABBED: "ALREADY_GRABBED",
-    Gdk.GrabStatus.INVALID_TIME: "INVALID_TIME",
-    Gdk.GrabStatus.NOT_VIEWABLE: "NOT_VIEWABLE",
-    Gdk.GrabStatus.FROZEN: "FROZEN",
-}
 
 dsinit: bool = False
 
